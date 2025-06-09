@@ -27,7 +27,7 @@ cncs-chatbot/
 
 ## Requirements
 
-- Python 3.7+
+- Python 3.11+
 - Flask
 - SQLite3 (included with Python)
 
