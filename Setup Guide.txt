@@ -1,0 +1,54 @@
+*****Current Chabot Status - FULLY FUNCTIONAL
+
+Base Requirements: 
+-Python 3.12+ (I use 3.12.1) (PATH VARIABLES MUST BE SET PROPERLY FOR SCRIPTS AND PYTHON ITSELF)
+-Flask webframework
+-A web browser 
+-An IDE of your choosing (I use VS Code)
+
+How to install Flask:
+-for WINDOWS users simply navigate to your IDE and create a terminal
+    -run "pip install Flask"
+-for MAC users the command is a little different
+    -run "pip3 install Flask" 
+
+If you need more help, here is a short video I used to install it myself 
+- https://youtu.be/6EJklo3Kpr4?si=MHuzlI6P66JhFs7H (1 minutes and 53 seconds long)
+
+to run the application please ensure that the folder structure is as follows:
+
+static (folder)
+    chatbot.css
+    chatbot.js 
+
+templates(folder)
+    index.html
+
+app.py
+create_database.py
+
+
+Running the program:
+
+Step 1. run "create_database.py" 
+    -in the terminal is should say the database was created and populated successfully
+
+Step 2. run "app.py" 
+    -from the terminal a link to the localhost port 5000 will be displayed
+    -simply hold down left control and click the link 
+    -this should open up your default web browser and display the sample website for CNCS along with my chatbot component in the bottom right corner
+
+IF you run into issues or clicking the link does not work HAVE NO FEAR
+    -simply navigate to your web browser and in the search bar enter "localhost:5000"
+
+    *please note that app.py MUST be actively running in the terminal in order for anything to show up*
+
+Step 3. Test the implemented features 
+
+Step 4. When finished testing the chatbot
+    -close the web browser 
+    -navigate back to the terminal where app.py is running
+    -be sure your cursor is clicked into the terminal and press the shortcut "control + c" (or Command + c if on a MAC) to shutdown the flask server
+
+    IF the shortcut command does not close the server, simply terminate the terminal window.
+
