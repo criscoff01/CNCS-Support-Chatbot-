@@ -4,7 +4,7 @@ A Flask-based customer support chatbot for CyberNet Computer Systems (CNCS) that
 
 ## Demo
 
-![CNCS Chatbot Demo](./Animated Demo of Suppo.gif)
+[![CNCS Chatbot Demo](./Animated Demo of Suppo.gif)](https://github.com/criscoff01/CNCS-Support-Chatbot-/blob/3c803718c3a8e6b0e7c2afbdb67fa7719e0916cc/Animated%20Demo%20of%20Suppo.gif)
 
 *Experience the full functionality of Suppo the support chatbot including contact lookup, product search, order tracking, and FAQ exploration.*
 
