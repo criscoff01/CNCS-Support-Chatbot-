@@ -1,0 +1,313 @@
+/*References: Learn CSS in 1 hour 🎨 - https://www.youtube.com/watch?v=wRNinF7YQqQ  */
+
+/* Chatbot container positioned in center */
+.chatbot-wrapper {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+/* Chat container styles - Much larger */
+.chat-container {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    width: 600px;  /* Increased from 350px */
+    height: 700px; /* Increased from 500px */
+    transition: all 0.3s ease;
+    border: 1px solid #e1e4e8;
+}
+
+/* Hidden state */
+.chat-container.minimized {
+    height: 0;
+    display: none;
+}
+
+.chat-header {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    color: white;
+    padding: 15px 20px; /* Increased padding */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chat-title {
+    margin: 0;
+    font-size: 20px; /* Increased from 16px */
+    font-weight: 500;
+}
+
+.chat-toggle {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px; /* Increased from 18px */
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: opacity 0.2s ease;
+}
+
+.chat-toggle:hover {
+    opacity: 0.8;
+}
+
+.chat-launch-button {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 100px;  /* Increased from 60px */
+    height: 100px; /* Increased from 60px */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(44, 62, 80, 0.3);
+    font-size: 36px; /* Increased from 24px */
+    transition: all 0.3s ease;
+}
+
+.chat-launch-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 25px rgba(44, 62, 80, 0.4);
+}
+
+.chat-launch-button.hidden {
+    display: none;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 20px; /* Increased from 15px */
+    overflow-y: auto;
+    font-size: 16px; /* Added base font size */
+    background-color: #f8f9fa;
+}
+
+.message {
+    margin-bottom: 20px; /* Increased from 15px */
+    max-width: 80%;
+}
+
+.user-message {
+    background-color: #007bff;
+    color: white;
+    padding: 12px 18px; /* Increased padding */
+    border-radius: 20px 20px 0 20px;
+    align-self: flex-end;
+    margin-left: auto;
+    margin-right: 0;
+    font-size: 16px;
+    box-shadow: 0 2px 5px rgba(0, 123, 255, 0.2);
+}
+
+.bot-message {
+    background-color: #ffffff;
+    color: #2c3e50;
+    padding: 12px 18px; /* Increased padding */
+    border-radius: 20px 20px 20px 0;
+    align-self: flex-start;
+    white-space: pre-line;
+    font-size: 16px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e1e4e8;
+}
+
+/* Typing indicator styles */
+.typing-indicator {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease-out;
+    max-width: 60px; /* Much smaller width for just the dots */
+    width: fit-content;
+}
+
+.typing-dots {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 12px; /* Reduced padding for smaller height */
+}
+
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #94a3b8;
+    animation: typing-bounce 1.4s ease-in-out infinite;
+}
+
+.typing-dots span:nth-child(1) {
+    animation-delay: 0ms;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: 160ms;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: 320ms;
+}
+
+@keyframes typing-bounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-6px);
+        opacity: 1;
+    }
+}
+
+.buttons-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+    padding: 0 10px 20px 10px;
+}
+
+/* Single button should span full width */
+.buttons-container:has(:only-child) {
+    grid-template-columns: 1fr;
+}
+
+/* Three buttons - first two on top row, third centered below */
+.buttons-container:has(:nth-child(3)):not(:has(:nth-child(4))) {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.buttons-container:has(:nth-child(3)):not(:has(:nth-child(4))) .option-button:nth-child(3) {
+    grid-column: 1 / -1;
+    max-width: 50%;
+    margin: 0 auto;
+}
+
+/* Four or more buttons - standard 2-column grid */
+.buttons-container:has(:nth-child(4)) {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+/* Five buttons - last button centered */
+.buttons-container:has(:nth-child(5)):not(:has(:nth-child(6))) .option-button:nth-child(5) {
+    grid-column: 1 / -1;
+    max-width: 50%;
+    margin: 0 auto;
+}
+
+.option-button {
+    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 16px 24px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 8px rgba(40, 167, 69, 0.15);
+    font-weight: 500;
+    text-align: center;
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.option-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.25);
+    background: linear-gradient(135deg, #2ec551 0%, #28a745 100%);
+}
+
+.option-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(40, 167, 69, 0.2);
+}
+
+/* Special styling for Main Menu button - make it stand out */
+.option-button:only-child,
+.buttons-container:has(.option-button:nth-child(2)) .option-button:first-child:contains("Main Menu") {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    box-shadow: 0 3px 8px rgba(108, 117, 125, 0.15);
+}
+
+.option-button:only-child:hover {
+    background: linear-gradient(135deg, #7d868e 0%, #5a6268 100%);
+    box-shadow: 0 5px 15px rgba(108, 117, 125, 0.25);
+}
+
+/* Styles for order input */
+
+.order-input-container {
+    display: flex;
+    padding: 15px; /* Increased from 10px */
+    margin-top: 15px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e1e4e8;
+}
+
+.order-input {
+    flex: 1;
+    padding: 12px 20px; /* Increased padding */
+    border: 2px solid #e1e4e8;
+    border-radius: 24px;
+    outline: none;
+    font-size: 16px; /* Increased from 14px */
+    transition: border-color 0.2s ease;
+}
+
+.order-input:focus {
+    border-color: #007bff;
+}
+
+.order-submit-button {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    border-radius: 24px;
+    padding: 12px 20px; /* Increased padding */
+    margin-left: 12px;
+    cursor: pointer;
+    font-size: 16px; /* Increased from 14px */
+    transition: all 0.2s ease;
+    font-weight: 500;
+    box-shadow: 0 2px 5px rgba(0, 123, 255, 0.2);
+}
+
+.order-submit-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* Add scrollbar styling for better visibility */
+.chat-messages::-webkit-scrollbar {
+    width: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 5px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 5px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
