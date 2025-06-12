@@ -1,0 +1,118 @@
+-----SCRIPTED USER SCENARIOS FOR TESTING-----
+
+
+All scenarios will assume the User ID of 1 for testing purposes and ease of use in gathering data.
+Please note that in a full-scale deployment scenario the user account system from the proposed company would be directly integrated into the chatbot system that I have developed
+
+Below are the scenarios that were utilized to test the usability of the system with my surrogate testers: 
+
+Scenario 1 - You placed an order with CNCS a few days ago and are trying to locate information on when it will be delivered
+- your order number is 3 (For the sample data, order numbers can range from 1-5.)
+
+Scenario 2 - You are struggling with a technical issue on your newly purchased desktop computer from CNCS. You are trying to find contact information for a department that you think would be helpful in resolving your issue.
+
+Scenario 3 - Upon further inspection of your newly purchased laptop, you realized there is a deep scratch in the screen before even removing the protective film from shipping. You need to find out whether are not there are warranties on CNCS products and need to get in contact with customer service
+
+Scenario 4 - You are looking to upgrade your set up with new computer and monitor. You are trying to see what products CNCS has available to see if they might have what you are looking for at the right price and whether or not the items are in stock. 
+
+Scenario 5 - You need to get in contact with the returns department
+
+
+
+------USER SATISFACTION SURVEY------
+This is template for measuring the overall satisfaction with using the system
+
+
+-----Basic Satisfaction Questions-----
+
+Q1) Were you satisfied with Suppo's ability to resolve your issue?
+
+Answer options: (Please put an X inside the brackets that apply)
+
+	1.Strongly Dissatisfied []
+
+	2. Dissatisfied         []
+
+	3. Neutral              [] 
+
+	4. Satisfied            []
+
+	5. Very Satisfied       []
+
+Q2) How satisfied were you with the navigation options available for switching between menus and accessing different information?
+
+Answer options:(Please put an X inside the brackets that apply)
+
+	1.Strongly Dissatisfied []
+
+	2. Dissatisfied         []
+
+	3. Neutral              [] 
+
+	4. Satisfied            []
+
+	5. Very Satisfied       []
+
+Q3) Were you able to complete your intended task when conversing with Suppo?
+
+Answer options:
+
+	Yes []
+	No  [] 
+
+
+
+
+-----Experience Questions-----
+
+Q4) What did you like most about your interactions with Suppo?
+
+Answer options:
+
+	-User written experience
+
+Q5) Were there any elements of Suppo that you found frustrating or poorly done?
+
+Answer options:
+
+	-User written experience
+
+Q6) Would you prefer to use other methods like phone and email for similar tasks that Suppo can help with? Please explain why.
+
+Answer options:
+
+	-User written experience
+
+
+
+
+
+-----Improvement Questions-----
+
+Q7) What features would you like to see added to Suppo's arsenal?
+
+Answer options:
+
+	-User feedback
+
+Q8) What changes would make you more likely to use Suppo in the future?
+
+Answer options:
+
+	-User feedback
+
+Q9) How likely are you to recommend using Suppo to other CNCS customers?
+
+Answer options:
+
+	1. Strongly Do Not Recommend []
+
+	2. Do Not Recommend          []
+
+	3. Neutral                   [] 
+
+	4. Would Recommend           []
+
+	5. Strongly Recommend        []
+
+
