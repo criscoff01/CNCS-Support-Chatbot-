@@ -179,7 +179,7 @@ The chatbot interface is compatible with modern web browsers that support:
 
 ## License
 
-[Add your license information here]
+MIT License - feel free to use this code for learning or reference purposes.
 
 
 
