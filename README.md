@@ -1,186 +1,178 @@
 # CNCS Support Chatbot
 
-A Flask-based customer support chatbot for CyberNet Computer Systems (CNCS) that provides automated assistance for common customer inquiries including contact information, product searches, order tracking, and FAQ management.
+> An intelligent customer support chatbot powered by Flask and Ollama AI, featuring natural language conversations and database-driven support capabilities.
+
+## Key Features
+
+### AI-Powered Conversations
+Ask questions naturally and get intelligent responses powered by Ollama's language models. The chatbot understands context and provides helpful answers based on your company's knowledge base.
+
+### Smart Database Integration
+- **Contact Lookup** - Find department contacts instantly
+- **Product Search** - Browse products by category with real-time pricing
+- **Order Tracking** - Check order status and view detailed breakdowns
+- **FAQ System** - Access frequently asked questions
+
+### Multi-Turn Conversations
+The chatbot maintains conversation context across multiple exchanges, allowing for natural follow-up questions and continuous dialogue.
+
+---
 
 ## Demo
-![Image](https://github.com/user-attachments/assets/3580954e-c1bb-4321-a41e-86aa4112d7d2)
 
+### Interactive Chatbot Experience
+Watch Suppo in action - handling customer inquiries, looking up contact information, and providing AI-powered responses:
 
-*Experience the full functionality of Suppo the support chatbot including contact lookup, product search, order tracking, and FAQ exploration.*
+![Image](https://github.com/user-attachments/assets/078a040b-24ac-4a97-a468-c8e8ead42351)
+
+### Responsive & Resizable Interface
+Adaptable to your screen size and preference!
+
+![Image](https://github.com/user-attachments/assets/6d9e6d95-6db7-479f-b7b6-7272e9f94f8e)
+
+### Light & Dark Mode Toggle
+Adjust to your personal preference!
+
+![Image](https://github.com/user-attachments/assets/31ddc1bc-339e-49b7-a8d1-08169d377dfe)
+---
+
+## Quick Start
+
+### Prerequisites
+- Python 3.11+
+- Ollama (for AI features)
+- Flask
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/cncs-chatbot.git
+cd cncs-chatbot
+
+# Install dependencies
+pip install flask
+
+# Install Ollama and pull a model
+ollama pull llama3.2
+
+# Initialize the database
+python create_database.py
+
+# Run the application
+python app.py
+```
+
+Visit `http://localhost:5000` to start chatting with Suppo!
+
+---
+
+## Architecture
+
+```
+┌─────────────────┐
+│   Flask App     │  ← Main application server
+└────────┬────────┘
+         │
+    ┌────┴────┐
+    │         │
+┌───▼───┐ ┌──▼──────┐
+│SQLite │ │ Ollama  │  ← AI processing
+│  DB   │ │  LLM    │
+└───────┘ └─────────┘
+```
+
+---
+
+## New AI Features
+
+### Natural Language Understanding
+- Ask questions in your own words
+- Get contextual responses based on your company data
+- Conversation memory across multiple exchanges
+
+### Intelligent Knowledge Base
+The AI has access to:
+- All department contacts and information
+- Complete product catalog with pricing
+- Full FAQ database
+- Order tracking capabilities
+
+### Session Management
+Each user gets their own conversation session, ensuring personalized and contextual interactions.
+
+---
+
+## Technology Stack
+
+- **Backend**: Flask (Python)
+- **Database**: SQLite3
+- **AI Engine**: Ollama (LLaMA 3.2)
+- **Frontend**: JavaScript
+- **Styling**: Custom CSS with dark/light themes
+
+---
+
+## Usage Examples
+
+**Finding Products:**
+> "Show me your gaming laptops"
+> "What monitors do you have under $500?"
+
+**Order Tracking:**
+> "What's the status of order #3?"
+> "When will my order arrive?"
+
+**General Questions:**
+> "What's your return policy?"
+> "How can I contact technical support?"
+
+---
 
 ## Features
 
-The chatbot supports four main use cases:
+- ✅ Real-time AI responses
+- ✅ Conversation context memory
+- ✅ Dark/Light theme toggle
+- ✅ Resizable chat window
+- ✅ Mobile-responsive design
+- ✅ Typing indicators
+- ✅ Database-driven content
+- ✅ Session-based conversations
 
-- **Contact Information**: Find department contacts and contact details
-- **Product Search**: Browse products by category with pricing and stock information
-- **Order Tracking**: Check order status and view detailed order information
-- **FAQ Management**: Access frequently asked questions and answers
+---
 
 ## Project Structure
 
 ```
 cncs-chatbot/
-├── app.py                 # Main Flask application with chatbot logic
-├── create_database.py     # Database initialization script
+├── app.py                 # Main Flask application
+├── create_database.py     # Database setup script
+├── cncs_chatbot.db       # SQLite database
 ├── templates/
-│   └── index.html        # Main webpage with embedded chatbot
-├── static/
-│   ├── chatbot.css       # Chatbot styling
-│   └── chatbot.js        # Frontend JavaScript functionality
-└── cncs_chatbot.db       # SQLite database (created after running setup)
+│   └── index.html        # Main webpage
+└── static/
+    ├── chatbot.css       # Chatbot styling
+    └── chatbot.js        # Frontend logic
 ```
 
-## Requirements
-
-- Python 3.11+
-- Flask
-- SQLite3 (included with Python)
-
-## Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/criscoff01/CNCS-Support-Chatbot-.git
-   cd cncs-chatbot
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pip install flask
-   ```
-
-3. **Initialize the database**
-   ```bash
-   python create_database.py
-   ```
-   This creates `cncs_chatbot.db` with sample data for testing.
-
-4. **Run the application**
-   ```bash
-   python app.py
-   ```
-
-5. **Access the chatbot**
-   Open your web browser and navigate to `http://localhost:5000`
-
-## Usage
-
-### Main Interface
-- The chatbot appears as a floating widget in the bottom-right corner
-- Click the chat icon to open the chatbot interface
-- Use the menu buttons to navigate between different support options
-
-### Supported Operations
-
-#### 1. Contact Information
-- Select "Contact CNCS" from the main menu
-- Choose a department to view contact details
-- Available departments: Sales, Technical Support, Customer Service, Returns, Billing, Shipping, Corporate, Marketing, HR
-
-#### 2. Product Search
-- Select "Find a Product" from the main menu
-- Browse by categories: Laptops, Desktops, Accessories, Monitors, Audio, Storage, Components
-- View product names, prices, and stock quantities
-
-#### 3. Order Tracking
-- Select "Check Order Status" from the main menu
-- Enter your order number when prompted (sample order numbers range from 1-5) 
-- View order status, date, and total amount
-- Option to see detailed item breakdown
-
-#### 4. FAQ Access
-- Select "Explore FAQs" from the main menu
-- Browse available questions
-- Click on any FAQ number to view the detailed answer
-
-## Database Schema
-
-The application uses SQLite with the following tables:
-
-- **Contacts**: Department contact information
-- **Products**: Product catalog with categories, prices, and stock
-- **Orders**: Customer order records
-- **OrderDetails**: Individual items within orders
-- **FAQs**: Frequently asked questions and answers
+---
 
 ## Configuration
 
-Key configuration variables in `app.py`:
+Edit `app.py` to customize:
 
 ```python
-DebuggerOn = True                    # Enable/disable Flask debug mode
-NameOfChatBotDB = 'cncs_chatbot.db' # Database filename
-UserID = 1                           # Default user ID for demo purposes
+OLLAMA_MODEL = "llama3.2"  # Change AI model
+DebuggerOn = True          # Toggle debug mode
+UserID = 1                 # Default user for demo
 ```
 
-## API Endpoints
+---
 
-- `GET /` - Serves the main webpage with embedded chatbot
-- `POST /api/chat` - Processes chatbot requests and returns responses
+## 📄 License
 
-### API Request Format
-```json
-{
-    "userTypedText": "user input text",
-    "userIntent": "intent_category"
-}
-```
+MIT License - Feel free to use and modify for your projects!
 
-### API Response Format
-```json
-{
-    "response": "chatbot response text",
-    "buttons": [{"text": "Button Label", "value": "intent_value"}],
-    "enableTextInput": false
-}
-```
-
-## Customization
-
-### Adding New Departments
-1. Insert new records into the `Contacts` table
-2. No code changes required - the chatbot automatically displays all departments
-
-### Adding New Product Categories
-1. Insert new products with desired categories into the `Products` table
-2. The system automatically creates category buttons
-
-### Modifying Responses
-Edit the response constants in `app.py`:
-- `InitialGreeting`
-- `FindPOCResponse`
-- `FindProductResponse`
-- `TrackOrderResponse`
-- `LookupFAQsResponse`
-
-## Development Notes
-
-- The chatbot uses a menu-driven approach rather than natural language processing
-- User intents are determined by button clicks rather than text analysis
-- All styling is contained in `static/chatbot.css`
-- Frontend JavaScript handles UI interactions in `static/chatbot.js`
-- Database operations are centralized in the `pullDataFromDB()` function
-
-## Testing Data
-
-The `create_database.py` script includes sample data for testing:
-- 9 departments with contact information
-- 11 products across various categories
-- 5 sample orders for UserID 1
-- 9 frequently asked questions
-
-## Browser Compatibility
-
-The chatbot interface is compatible with modern web browsers that support:
-- ES6 JavaScript features
-- CSS Flexbox
-- SVG graphics
-
-## License
-
-MIT License - feel free to use this code for learning or reference purposes.
+---
 
 
-
-**Note**: This is a demonstration application with hardcoded sample data. For production use, consider implementing user authentication, input validation, and security measures appropriate for your environment.

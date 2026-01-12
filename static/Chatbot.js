@@ -199,7 +199,9 @@ document.addEventListener('DOMContentLoaded', () => {
      * Scroll chat to bottom
      */
     function scrollToBottom() {
-        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+        requestAnimationFrame(() => {
+            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+        });
     }
 
     /**
