@@ -1,387 +1,450 @@
-#References: 
-# Learn 12 Basic SQL Concepts in 15 Minutes - https://youtu.be/_vxobA36UN4?si=40cYFnC97-M1a-1n
-# How to create a simple flask app in just 5 minutes - https://youtu.be/6M3LzGmIAso?si=5zfwenQXwDlwVBTM 
-# Connect to SQLite Databae. GET Data -https://youtu.be/Ym6LsUO9gQo?si=L8iUu6fVK7v-Ovl1
-# How to render HTML page using Flask - https://youtu.be/TH-S2shHKw0?si=sq6ODRDjvaM3RAG-
-# Learn Flask for Python Full Tutorial - https://youtu.be/Z1RJmh_OqeA?si=qKWot2_jgLas9dFW
-# jsonify python flask - https://youtu.be/wEla4oQ9TqI?si=KyUmo8cAy26lzgr4
+"""
+CNCS Support Chatbot - Flask Backend
+Handles chatbot logic and database operations
+"""
 
-# Import needed web component framework
 from flask import Flask, render_template, request, jsonify
-
-# Import needed DB framework
 import sqlite3
+import ollama
 
-# Configuration Constants
-DebuggerOn =        True
-NameOfChatBotDB =   'cncs_chatbot.db'
-RouteToHostPage =   '/'
-NameOfHostPage =    'index.html'
-RouteToChatBotAPI = '/api/chat'
+# =============================================================================
+# Configuration
+# =============================================================================
 
-UserID = 1          # No user login developed for this app (assumed to pre-exist), so default to this user for Track Order use case demo
+DEBUG_MODE = True
+DATABASE_NAME = 'cncs_chatbot.db'
+DEFAULT_USER_ID = 1  # Demo user (no auth implemented)
+OLLAMA_MODEL = "llama3.2"
 
-# Chatbot Intents - interpretations of user intent to drive chatbot responses
-GreetingIntent =    "greeting"  # Initial / Main Menu intent
-FallbackIntent =    "fallback"  # Default when user intent cannot be determined
-FindContactIntent = "poc"       # Use case 1
-FindProductIntent = "product"   # Use case 2
-TrackOrderIntent =  "order"     # Use case 3
-LookupFAQsIntent =  "faq"       # Use case 4
+# =============================================================================
+# Intent Constants
+# =============================================================================
 
-# Chatbot menu button labels
-MainMenuLabel = "Main Menu"
-ContactLabel =  "Contact CNCS"
-ProductLabel =  "Find a Product"
-OrderLabel =    "Check Order Status"
-FAQsLabel =     "Explore FAQs"
+class Intent:
+    GREETING = "greeting"
+    FALLBACK = "fallback"
+    CONTACT = "poc"
+    PRODUCT = "product"
+    ORDER = "order"
+    FAQ = "faq"
+    FREETEXT = "freetext"
 
-DepartmentsLabel =  "Back to Departments"
-CategoriesLabel =   "Back to Categories"
-OrderDetailsLabel = "View Order Details"
-AnotherOrderLabel = "Check Another Order"
-FAQsBackLabel =     "Back to FAQs"
+# =============================================================================
+# UI Labels
+# =============================================================================
 
-# Chatbot menu buttons for user interaction
-MainMenuButton =    {"text": MainMenuLabel, "value": GreetingIntent}
-FindContactButton = {"text": ContactLabel, "value": FindContactIntent}
-FindProductButton = {"text": ProductLabel, "value": FindProductIntent}
-TrackOrderButton =  {"text": OrderLabel, "value": TrackOrderIntent}
-LookupFAQsButton =  {"text": FAQsLabel, "value": LookupFAQsIntent}
+class Label:
+    MAIN_MENU = "Main Menu"
+    CONTACT = "Contact CNCS"
+    PRODUCT = "Find a Product"
+    ORDER = "Check Order Status"
+    FAQ = "Explore FAQs"
+    ASK = "Ask a Question"
+    BACK_DEPARTMENTS = "Back to Departments"
+    BACK_CATEGORIES = "Back to Categories"
+    VIEW_DETAILS = "View Order Details"
+    ANOTHER_ORDER = "Check Another Order"
+    BACK_FAQ = "Back to FAQs"
 
-DepartmentsBackButton = {"text": DepartmentsLabel, "value": FindContactIntent}
-CategoriesBackButton =  {"text": CategoriesLabel, "value": FindProductIntent}
-TryAnotherOrderButton = {"text": AnotherOrderLabel, "value": TrackOrderIntent}
-FAQsBackButton =        {"text": FAQsBackLabel, "value": LookupFAQsIntent}
+# =============================================================================
+# Response Messages
+# =============================================================================
 
-PrimaryMenu = [FindContactButton, FindProductButton, TrackOrderButton, LookupFAQsButton]
+class Message:
+    GREETING = "Hello! I'm Suppo, the CNCS support chatbot. How can I help you?"
+    UNKNOWN = "I cannot help with that, but I am working on it. Try again later."
+    CONTACT = "Choose a department:"
+    PRODUCT = "Choose a product category:"
+    ORDER = "Please enter your order number below to check the status:"
+    FAQ = "Frequently Asked Questions:\n\n"
+    ASK = "What would you like to know? Type your question below:"
 
-# Static chatbot responses
-InitialGreeting =       "Hello! I'm Suppo, the CNCS support chatbot. How can I help you?"
-UnknownRequest =        "I cannot help with that, but I am working on it. Try again later."
-FindPOCResponse =       "Choose a department:"
-FindProductResponse =   "Choose a product category:"
-TrackOrderResponse =    "Please enter your order number below to check the status:"
-LookupFAQsResponse =    "Frequently Asked Questions:\n\n"
-
-# Initialize the chatbot application
-app = Flask(__name__)
-
-# For root URL visits, launch the host web page - which contains the chatbot
-@app.route(RouteToHostPage)                     # Config route to host web page
-def index():
-    return render_template(NameOfHostPage)
-
-# Receive and process customer chat requests
-@app.route(RouteToChatBotAPI, methods=['POST'])         # Config route for chatbot API requests
-def chat():
-    userRequestData = request.json                      # Extract customer input data from user request
-    userIntent = getUserIntent(userRequestData)
-    userText = getUserTypedText(userRequestData)
-    chatResults = processUserIntent(userIntent, userText)         # Send to the proper user intent handler
-    return jsonify(chatResults)  # 'chatResults' is a dictionary with a response and menu buttons to display
-
-# Interpret user intent - in this menu-driven chatbot, userIntent is simply determined by the button pressed
-# If using typed text instead of menu buttons is desired, this is where AI/NLP support would be added
-# Of note, AI/NLP use (eg, Amazon Lex) would require a table of training 'utterances' that map to the 'intents'
-def getUserIntent(userData):
-    userIntent = userData.get('userIntent', GreetingIntent)   # Get userIntent from user, default to GreetingIntent
-    return userIntent
-
-# Extract any user text from the text input field that was presented to the user
-def getUserTypedText(userData):
-    userTypedText = userData.get('userTypedText')
-    return userTypedText
-
-# Process the user intent by routing to an appropriate intent handler - as use cases are implemented I will add user intent handlers here
-def processUserIntent(userIntent, userText):
-    if userIntent == GreetingIntent:
-        return handleGreetingIntent()
-    elif userIntent.startswith(FindContactIntent):
-        return handleFindContactIntent(userIntent)
-    elif userIntent.startswith(FindProductIntent):  
-        return handleFindProductIntent(userIntent)
-    elif userIntent.startswith(TrackOrderIntent):
-        return handleTrackOrderIntent(userIntent, userText)
-    elif userIntent.startswith(LookupFAQsIntent):
-        return handleLookupFAQsIntent(userIntent)
-    else:    # FallbackIntent
-        return handleFallbackIntent()
-
-# Ensure proper format for every chatbot message sent back to the user
-def chatBotMessage(response, buttons, enableTextInput):
-    return {"response": response, "buttons": buttons, "enableTextInput": enableTextInput}
-
-# Ensure proper format for every chatbot message sent back to the user
-def makeButton(label, userIntent):
-    return {"text": label, "value": userIntent}
-    
-# ===== DEFAULT INTENT HANDLERS =====
-
-# Process the chatbot opening interaction
-def handleGreetingIntent():
-    return chatBotMessage(InitialGreeting, PrimaryMenu, False)
-
-# Process an unknown chat request
-def handleFallbackIntent():
-    return chatBotMessage(UnknownRequest, [MainMenuButton], False)
-
-# ===== DB ACCESS SUPPORT FOR THE CHATBOT'S USER INTENT HANDLERS =====
-
+# =============================================================================
 # SQL Queries
-ListOfDepartments = "SELECT DISTINCT Department FROM Contacts"
-ContactRecord =     "SELECT * FROM Contacts WHERE Department = ?"
+# =============================================================================
 
-ListOfCategories =  "SELECT DISTINCT Category FROM Products"
-ProductRecord =     "SELECT * FROM Products WHERE Category = ?" 
-OrderRecord =       f"SELECT * FROM Orders WHERE OrderID = ? and UserID = {UserID}"
-ItemsRecord =       f"""
-                    SELECT OrderDetails.OrderDetailID, OrderDetails.Quantity, OrderDetails.Subtotal, Products.ProductName
-                    FROM OrderDetails
-                    JOIN Products ON OrderDetails.ProductID = Products.ProductID
-                    JOIN Orders ON OrderDetails.OrderID = Orders.OrderID
-                    WHERE OrderDetails.OrderID = ? and Orders.UserID = {UserID}
-                    """
-ListOfFAQs =        "SELECT * FROM FAQs"
-AnswerRecord =      "SELECT * FROM FAQs WHERE FAQID = ?"
-# Open and configure a DB connection 
-def getDB():
-    db = sqlite3.connect(NameOfChatBotDB) # Open DB 
-    db.row_factory = sqlite3.Row          # Config row access
+class Query:
+    DEPARTMENTS = "SELECT DISTINCT Department FROM Contacts"
+    CONTACT = "SELECT * FROM Contacts WHERE Department = ?"
+    CATEGORIES = "SELECT DISTINCT Category FROM Products"
+    PRODUCTS = "SELECT * FROM Products WHERE Category = ?"
+    ORDER = f"SELECT * FROM Orders WHERE OrderID = ? AND UserID = {DEFAULT_USER_ID}"
+    ORDER_ITEMS = f"""
+        SELECT od.OrderDetailID, od.Quantity, od.Subtotal, p.ProductName
+        FROM OrderDetails od
+        JOIN Products p ON od.ProductID = p.ProductID
+        JOIN Orders o ON od.OrderID = o.OrderID
+        WHERE od.OrderID = ? AND o.UserID = {DEFAULT_USER_ID}
+    """
+    FAQS = "SELECT * FROM FAQs"
+    FAQ_ANSWER = "SELECT * FROM FAQs WHERE FAQID = ?"
+    ALL_CONTACTS = "SELECT Department, Email, Phone FROM Contacts"
+    ALL_PRODUCTS = "SELECT ProductName, Category, Price, StockQuantity FROM Products"
+    ALL_FAQ_QA = "SELECT Question, Answer FROM FAQs"
+
+# =============================================================================
+# Application Setup
+# =============================================================================
+
+app = Flask(__name__)
+conversation_sessions = {}
+
+# Button definitions
+MAIN_MENU_BUTTON = {"text": Label.MAIN_MENU, "value": Intent.GREETING}
+CONTACT_BUTTON = {"text": Label.CONTACT, "value": Intent.CONTACT}
+PRODUCT_BUTTON = {"text": Label.PRODUCT, "value": Intent.PRODUCT}
+ORDER_BUTTON = {"text": Label.ORDER, "value": Intent.ORDER}
+FAQ_BUTTON = {"text": Label.FAQ, "value": Intent.FAQ}
+ASK_BUTTON = {"text": Label.ASK, "value": Intent.FREETEXT}
+DEPARTMENTS_BACK = {"text": Label.BACK_DEPARTMENTS, "value": Intent.CONTACT}
+CATEGORIES_BACK = {"text": Label.BACK_CATEGORIES, "value": Intent.PRODUCT}
+ANOTHER_ORDER_BUTTON = {"text": Label.ANOTHER_ORDER, "value": Intent.ORDER}
+FAQ_BACK = {"text": Label.BACK_FAQ, "value": Intent.FAQ}
+
+PRIMARY_MENU = [CONTACT_BUTTON, PRODUCT_BUTTON, ORDER_BUTTON, FAQ_BUTTON, ASK_BUTTON]
+
+# =============================================================================
+# Database Functions
+# =============================================================================
+
+def get_db():
+    """Create database connection with row factory."""
+    db = sqlite3.connect(DATABASE_NAME)
+    db.row_factory = sqlite3.Row
     return db
 
-# Pull data from the chatbot DB 
-def pullDataFromDB(sqlQuery, value = ""):
-    db = getDB()
+
+def query_db(sql, params=""):
+    """Execute SQL query and return results."""
+    db = get_db()
     cursor = db.cursor()
-    if value == "":
-        cursor.execute(sqlQuery) 
+    
+    if params:
+        cursor.execute(sql, (params,))
     else:
-        cursor.execute(sqlQuery, (value,))
+        cursor.execute(sql)
+    
     data = cursor.fetchall()
     db.close()
     return data
 
-# ===== USER INTENT HANDLERS =====
+# =============================================================================
+# Helper Functions
+# =============================================================================
 
-# Utility function - Create a menu button for each item in the list
-def createButtons(list, attribute, namePrefix, intentPrefix):
-    menu = []
-    for item in list:
-        itemName = item[attribute]
-        buttonName = f"{namePrefix}{itemName}"
-        userIntent = f"{intentPrefix}{itemName}"
-        menu.append(makeButton(buttonName, userIntent))
-    return menu
-
-# Phase 1
+def make_button(label, intent):
+    """Create a button dictionary."""
+    return {"text": label, "value": intent}
 
 
-# Use Case 1 : FindContactIntent - Lookup Points of Conctact (POCs) by Department
-# ---The structure of userIntent is either "FindContactIntent" or "FindContactIntent_Department"
-def handleFindContactIntent(userIntent):
-    intentPrefix = f"{FindContactIntent}_"
-    if userIntent == FindContactIntent:       # Primary level of detail needed
-        return lookupDepartments(intentPrefix)
-    else:                                     # Secondary level of detail needed 
-        department = userIntent.replace(intentPrefix, '') #Remove intentPrefix
-        return lookupContacts(department) 
+def make_response(text, buttons, enable_input=False):
+    """Create a standardized response dictionary."""
+    return {
+        "response": text,
+        "buttons": buttons,
+        "enableTextInput": enable_input
+    }
+
+
+def create_buttons(items, attribute, prefix, intent_prefix):
+    """Generate buttons from database items."""
+    return [
+        make_button(f"{prefix}{item[attribute]}", f"{intent_prefix}{item[attribute]}")
+        for item in items
+    ]
+
+# =============================================================================
+# Ollama Integration
+# =============================================================================
+
+def build_system_prompt():
+    """Build Suppo's system prompt with database knowledge."""
+    contacts = query_db(Query.ALL_CONTACTS)
+    products = query_db(Query.ALL_PRODUCTS)
+    faqs = query_db(Query.ALL_FAQ_QA)
+
+    contacts_info = "DEPARTMENT CONTACTS:\n"
+    for c in contacts:
+        contacts_info += f"- {c['Department']}: Email: {c['Email']}, Phone: {c['Phone']}\n"
+
+    products_info = "PRODUCTS:\n"
+    for p in products:
+        products_info += f"- {p['ProductName']} ({p['Category']}) - ${p['Price']:.2f} - {p['StockQuantity']} in stock\n"
+
+    faqs_info = "FREQUENTLY ASKED QUESTIONS:\n"
+    for f in faqs:
+        faqs_info += f"Q: {f['Question']}\nA: {f['Answer']}\n\n"
+
+    return f"""You are Suppo, the friendly customer service assistant for CyberNet Computer Systems (CNCS).
+
+PERSONALITY:
+- Warm, enthusiastic, and genuinely eager to help
+- Conversational and friendly but professional
+- Uses light humor when appropriate
+- Patient and thorough in explanations
+- Honest when you don't know something
+
+YOUR KNOWLEDGE BASE:
+
+{contacts_info}
+{products_info}
+{faqs_info}
+
+GUIDELINES:
+1. Answer using ONLY the information provided above
+2. If asked about something not in your knowledge base, politely say you don't have that information and offer to help with other questions. That is it.
+3. For order-specific questions, suggest using the "Check Order Status" button
+4. Be concise but helpful
+5. When discussing products, mention price and availability if relevant
+6. Be accurate with prices and contact information - never make up details
+7. Keep your responses concise and to the point. Don't add extra information that is not relevant to the question. 
+"""
+
+
+def query_ollama(question, session_id):
+    """Query Ollama with conversation context."""
+    global conversation_sessions
+
+    try:
+        if session_id not in conversation_sessions:
+            conversation_sessions[session_id] = []
+
+        system_prompt = build_system_prompt()
+        conversation_sessions[session_id].append({'role': 'user', 'content': question})
+
+        messages = [{'role': 'system', 'content': system_prompt}] + conversation_sessions[session_id]
+        response = ollama.chat(model=OLLAMA_MODEL, messages=messages)
+        
+        assistant_response = response['message']['content']
+        conversation_sessions[session_id].append({'role': 'assistant', 'content': assistant_response})
+
+        return assistant_response
+
+    except Exception as e:
+        print(f"Ollama error: {e}")
+        return "I'm having trouble processing your question. Please try using the menu options or try again later."
+
+# =============================================================================
+# Intent Handlers
+# =============================================================================
+
+def handle_greeting():
+    """Handle initial greeting."""
+    return make_response(Message.GREETING, PRIMARY_MENU)
+
+
+def handle_fallback():
+    """Handle unknown intents."""
+    return make_response(Message.UNKNOWN, [MAIN_MENU_BUTTON])
+
+
+def handle_contact(intent):
+    """Handle contact lookup."""
+    prefix = f"{Intent.CONTACT}_"
     
-# Respond to the user with a set of buttons representing the different departments
-def lookupDepartments(intentPrefix):
-    departments = pullDataFromDB(ListOfDepartments)
-    response = FindPOCResponse
-    buttons = createButtons(departments, 'Department', "", intentPrefix)
-    buttons.append(MainMenuButton)
-    return chatBotMessage(response, buttons, False)
-
-# Respond to the user with all contact information for the user selected department
-def lookupContacts(department):
-    contacts = pullDataFromDB(ContactRecord, department)
-    response = formatContactsResponse(department, contacts)
-    buttons = [DepartmentsBackButton, MainMenuButton]
-    return chatBotMessage(response, buttons, False)
-
-# Format response that includes details for all contacts in the department
-def formatContactsResponse(department, contacts):
-    if contacts:        # if contacts were found, prep a response with contact info
-        response = f"Here is the contact infromation for {department}:\n\n"
+    if intent == Intent.CONTACT:
+        departments = query_db(Query.DEPARTMENTS)
+        buttons = create_buttons(departments, 'Department', "", prefix)
+        buttons.append(MAIN_MENU_BUTTON)
+        return make_response(Message.CONTACT, buttons)
+    
+    department = intent.replace(prefix, '')
+    contacts = query_db(Query.CONTACT, department)
+    
+    if contacts:
+        response = f"Here is the contact information for {department}:\n\n"
         for contact in contacts:
-            response += f"Email: {contact['Email']}\n"
-            response += f"Phone: {contact['Phone']}\n"
-    else:           # if no contacts were found, prep a response stating so
-        response = f"I could not find contact information for {department}."
-    return response
-
-
-# Phase 2 
-
-
-# Use Case 2 : FindProductIntent - Lookup Products by Category
-
-# The structure of userIntent is either "FindProductIntent" or "FindProductIntent_Category"
-def handleFindProductIntent(userIntent):
-    intentPrefix = f"{FindProductIntent}_"
-    if userIntent == FindProductIntent:
-        return lookupCategories(intentPrefix)
+            response += f"Email: {contact['Email']}\nPhone: {contact['Phone']}\n"
     else:
-        category = userIntent.replace(intentPrefix, '')
-        return lookupProducts(category)
+        response = f"I could not find contact information for {department}."
     
-# Respond to the user with a set of buttons representing the different product categories
-def lookupCategories(intentPrefix):
-    categories = pullDataFromDB(ListOfCategories) 
-    response = FindProductResponse
-    buttons = createButtons(categories, 'Category', "", intentPrefix)
-    buttons.append(MainMenuButton)
-    return chatBotMessage(response, buttons, False)
+    return make_response(response, [DEPARTMENTS_BACK, MAIN_MENU_BUTTON])
 
-# Respond to the user with details for all products in the user selected 'category' 
-def lookupProducts(category):
-    products = pullDataFromDB(ProductRecord, category)
-    response = formatProductsResponse(category, products)
-    buttons = [CategoriesBackButton, MainMenuButton]
-    return chatBotMessage(response, buttons, False)
 
-# Format a respones that includes details for all products in a category
-def formatProductsResponse(category, products):
+def handle_product(intent):
+    """Handle product lookup."""
+    prefix = f"{Intent.PRODUCT}_"
+    
+    if intent == Intent.PRODUCT:
+        categories = query_db(Query.CATEGORIES)
+        buttons = create_buttons(categories, 'Category', "", prefix)
+        buttons.append(MAIN_MENU_BUTTON)
+        return make_response(Message.PRODUCT, buttons)
+    
+    category = intent.replace(prefix, '')
+    products = query_db(Query.PRODUCTS, category)
+    
     if products:
         response = f"Here are our products in the {category} category:\n"
         for product in products:
-            #inlcude product name, price, and stock qunatity
             response += f"\n- {product['ProductName']}\n"
             response += f"  Price: ${product['Price']:.2f}\n"
-            response += f"  Stock: {product['StockQuantity']} units \n"
+            response += f"  Stock: {product['StockQuantity']} units\n"
     else:
         response = f"I could not find products in the {category} category."
-    return response
+    
+    return make_response(response, [CATEGORIES_BACK, MAIN_MENU_BUTTON])
 
 
-# Phase 3
+def handle_order(intent, user_text):
+    """Handle order status lookup."""
+    prefix = f"{Intent.ORDER}_"
+    
+    if intent == Intent.ORDER:
+        order_num = None
+        if user_text and user_text.isdigit():
+            order_num = int(user_text)
+        
+        if order_num:
+            return lookup_order(order_num, prefix)
+        return make_response(Message.ORDER, [MAIN_MENU_BUTTON], enable_input=True)
+    
+    order_num = int(intent.replace(prefix, ''))
+    return lookup_order_details(order_num)
 
 
-# Use Case 3 : TrackOrderIntent - Lookup a Customer's Order status and offer full order review
+def lookup_order(order_num, prefix):
+    """Look up order status."""
+    orders = query_db(Query.ORDER, order_num)
+    
+    if not orders:
+        return make_response(
+            f"I'm sorry, I cannot find order #{order_num} in our system. Please try another order number.",
+            [ANOTHER_ORDER_BUTTON, MAIN_MENU_BUTTON]
+        )
+    
+    response = format_order_response(order_num, orders)
+    view_details = make_button(Label.VIEW_DETAILS, f"{prefix}{order_num}")
+    return make_response(response, [view_details, ANOTHER_ORDER_BUTTON, MAIN_MENU_BUTTON])
 
-# ---The strucutre of userIntent is either "TrackOrderIntent" or "TrackOrderIntent_OrderNumber"
-def handleTrackOrderIntent(userIntent, userText):
-    intentPrefix = f"{TrackOrderIntent}_"
-    if userIntent == TrackOrderIntent:       # Primary level of detail needed
-        orderNumber = convertToOrderNumber(userText)
-        if orderNumber:                      # Did the user provide an orderNumber?
-            return lookupOrderNumber(orderNumber, intentPrefix)
-        else:                                # If not, get one
-            return requestOrderNumber()
-    else:                                    # Secondary level of detail needed
-        orderNumber = int(userIntent.replace(intentPrefix, ''))  # Remove intent Prefix
-        return lookupFullOrder(orderNumber) 
 
-# If the user provided aan order number, convert it to int
-def convertToOrderNumber(userText):
-    orderNumber = None
-    if userText and userText.isdigit():
-        orderNumber = int(userText)
-    return orderNumber
+def lookup_order_details(order_num):
+    """Look up full order with items."""
+    orders = query_db(Query.ORDER, order_num)
+    
+    if not orders:
+        return make_response(
+            f"I'm sorry, I cannot find order #{order_num} in our system.",
+            [ANOTHER_ORDER_BUTTON, MAIN_MENU_BUTTON]
+        )
+    
+    items = query_db(Query.ORDER_ITEMS, order_num)
+    response = format_order_response(order_num, orders)
+    response += format_items_response(items)
+    
+    return make_response(response, [ANOTHER_ORDER_BUTTON, MAIN_MENU_BUTTON])
 
-# The customer requested order tracking but has not yet provided an order number, so ask for one
-def requestOrderNumber():   # Opens a text input field, which is triggered by the True flag
-    return chatBotMessage(TrackOrderResponse, [MainMenuButton], True)
 
-# Respond to the user with status for the 'orderNumber' provided
-def lookupOrderNumber(orderNumber, intentPrefix):
-    orders = pullDataFromDB(OrderRecord, orderNumber)
-    if orders:             # Display the order status and provude a button to view full order details
-        response = formatOrderResponse(orderNumber, orders)
-        viewOrderDetailsbutton = makeButton(OrderDetailsLabel, f"{intentPrefix}{orderNumber}")
-        buttons = [viewOrderDetailsbutton, TryAnotherOrderButton, MainMenuButton]
-        return chatBotMessage(response, buttons, False)
-    else:                  # Order not found
-        return orderNotFoundMessage(orderNumber)
-
-# Display the order status, including a list of all items in the order
-def lookupFullOrder(orderNumber):
-    orders = pullDataFromDB(OrderRecord, orderNumber)
-    if orders:             # Display the order status and list all items purchased 
-        items = pullDataFromDB(ItemsRecord, orderNumber)
-        response = formatOrderResponse(orderNumber, orders)
-        response += formatOrderItemsResponse(items)
-        buttons = [TryAnotherOrderButton, MainMenuButton]
-        return chatBotMessage(response, buttons, False)
-    else:                   # Order not found
-        return orderNotFoundMessage(orderNumber)
-
-# Order not found, so let the user know and provide a button to try another order
-def orderNotFoundMessage(orderNumber):
-    response = f"I'm sorry, I cannot find order #{orderNumber} in our system. Please try another order number."
-    buttons = [TryAnotherOrderButton, MainMenuButton]
-    return chatBotMessage(response, buttons, False)
-
-# format a response that includes all 'orders' associated with 'orderNumber'
-def formatOrderResponse(orderNumber, orders):
-    response = f"Order #{orderNumber}:\n"
+def format_order_response(order_num, orders):
+    """Format order information."""
+    response = f"Order #{order_num}:\n"
     for order in orders:
         response += f"\nStatus: {order['Status']}\n"
         response += f"Order Date: {order['OrderDate']}\n"
         response += f"Total Amount: ${order['TotalAmount']:.2f}\n"
     return response
 
-# Format a response that includes all items in an order
-def formatOrderItemsResponse(items):
-    if items:
-        response = "\nItems in this order:\n"
-        for item in items:
-            response += f"\n- {item['ProductName']} (Qty: {item['Quantity']}): ${item['Subtotal']:.2f}\n"
-    else:
-        response = "No items found for this order."
+
+def format_items_response(items):
+    """Format order items."""
+    if not items:
+        return "No items found for this order."
+    
+    response = "\nItems in this order:\n"
+    for item in items:
+        response += f"\n- {item['ProductName']} (Qty: {item['Quantity']}): ${item['Subtotal']:.2f}\n"
     return response
 
 
-
-# Use Case 4 :LookupFAQsIntent - Lookup all FAQs and allow the user to selectively review them
-
-#---The strucute of userIntent is either "LookupFAQsIntent" or "LookupFAQsIntent_FaqNumber"
-def handleLookupFAQsIntent(userIntent):
-    intentPrefix = f"{LookupFAQsIntent}_"
-    if userIntent == LookupFAQsIntent:
-        return lookupFAQs(intentPrefix)
-    else:
-        faqNumber = userIntent.replace(intentPrefix, '')
-        return lookupFAQanswers(faqNumber)
-
-# Respond to the user with a list and set of buttons representing the different FAQs
-def lookupFAQs(intentPrefix):
-    faqs = pullDataFromDB(ListOfFAQs)
-    response = formatLookupFAQsResponse(faqs)
-    buttons = createButtons(faqs, 'FAQID', "#", intentPrefix)
-    buttons.append(MainMenuButton)
-    return chatBotMessage(response, buttons, False)
-
-# Respond to the user with the FAQ and answer(s) indicated by 'faqNumber'
-def lookupFAQanswers(faqNumber):
-    answers =pullDataFromDB(AnswerRecord, faqNumber)
-    response = formatLookupFAQanswersResponse(faqNumber, answers)
-    buttons = [FAQsBackButton, MainMenuButton]
-    return chatBotMessage(response, buttons, False)
-
-# Forma a list of all FAQs available for the user to review
-def formatLookupFAQsResponse(faqs):
-    response = LookupFAQsResponse 
-    for faq in faqs:
-        response += f"{faq['FAQID']}. {faq['Question']}\n"
-    response += "\nChoose an FAQ answer below:"
-    return response
-
-# Format a response that includes a specific FAQ and its answers
-def formatLookupFAQanswersResponse(faqNumber, answers):
-    if answers:      # if answers were found, prep a response
-        response = f"FAQ #{faqNumber}:\n\n"
+def handle_faq(intent):
+    """Handle FAQ lookup."""
+    prefix = f"{Intent.FAQ}_"
+    
+    if intent == Intent.FAQ:
+        faqs = query_db(Query.FAQS)
+        response = Message.FAQ
+        for faq in faqs:
+            response += f"{faq['FAQID']}. {faq['Question']}\n"
+        response += "\nChoose an FAQ answer below:"
+        
+        buttons = create_buttons(faqs, 'FAQID', "#", prefix)
+        buttons.append(MAIN_MENU_BUTTON)
+        return make_response(response, buttons)
+    
+    faq_id = intent.replace(prefix, '')
+    answers = query_db(Query.FAQ_ANSWER, faq_id)
+    
+    if answers:
+        response = f"FAQ #{faq_id}:\n\n"
         for answer in answers:
-            response += f"{answer['Question']}\n\n"
-            response += f"Answer: {answer['Answer']}\n"
-    else:            # if no answers were found, prep a response stating so
-        response = f"I could not find an answer for FAQ #{faqNumber}."
-    return response
+            response += f"{answer['Question']}\n\nAnswer: {answer['Answer']}\n"
+    else:
+        response = f"I could not find an answer for FAQ #{faq_id}."
+    
+    return make_response(response, [FAQ_BACK, MAIN_MENU_BUTTON])
 
 
-# Run the Chatbot when this file is executed
+def handle_freetext(intent, user_text, session_id):
+    """Handle free text questions using Ollama."""
+    if intent == Intent.FREETEXT and not user_text:
+        return make_response(Message.ASK, [MAIN_MENU_BUTTON], enable_input=True)
+    
+    if user_text and user_text.strip():
+        ai_response = query_ollama(user_text, session_id)
+        return make_response(ai_response, [ASK_BUTTON, MAIN_MENU_BUTTON], enable_input=True)
+    
+    return make_response("Please type a question.", [ASK_BUTTON, MAIN_MENU_BUTTON])
+
+# =============================================================================
+# Request Processing
+# =============================================================================
+
+def process_intent(intent, user_text, session_id):
+    """Route request to appropriate handler."""
+    handlers = {
+        Intent.GREETING: lambda: handle_greeting(),
+        Intent.CONTACT: lambda: handle_contact(intent),
+        Intent.PRODUCT: lambda: handle_product(intent),
+        Intent.ORDER: lambda: handle_order(intent, user_text),
+        Intent.FAQ: lambda: handle_faq(intent),
+        Intent.FREETEXT: lambda: handle_freetext(intent, user_text, session_id),
+    }
+    
+    for key, handler in handlers.items():
+        if intent.startswith(key):
+            return handler()
+    
+    return handle_fallback()
+
+# =============================================================================
+# Routes
+# =============================================================================
+
+@app.route('/')
+def index():
+    """Serve the main page."""
+    return render_template('index.html')
+
+
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    """Process chat requests."""
+    data = request.json
+    
+    intent = data.get('userIntent', Intent.GREETING)
+    user_text = data.get('userTypedText', '')
+    session_id = data.get('sessionId', '')
+    
+    print(f"\n=== SESSION: {session_id} ===")
+    print(f"Intent: {intent}")
+    print(f"Text: {user_text}")
+    
+    result = process_intent(intent, user_text, session_id)
+    return jsonify(result)
+
+# =============================================================================
+# Entry Point
+# =============================================================================
+
 if __name__ == '__main__':
-    app.run(debug=DebuggerOn)   # Shows detailed error messages if DebuggerOn
+    app.run(debug=DEBUG_MODE)

@@ -1,37 +1,210 @@
-//References: JavaScript Tutorial Full Course - Beginner to Pro - https://www.youtube.com/watch?v=EerdGm-ehJQ
+/**
+ * CNCS Chatbot - Frontend JavaScript
+ * Handles UI interactions and server communication
+ */
 
-document.addEventListener('DOMContentLoaded', function() {
-    
-    // Interface objects from the host web page
-    const chatMessages = document.getElementById('chat-messages');
-    const chatBotContainer = document.getElementById('chat-container');
-    const chatLaunchButton = document.getElementById('chat-launch-button');
-    const chatMinimizeButton = document.getElementById('chat-minimize-button');
-    
-    // Animation timing constants
-    const TYPING_DELAY = 650; // Time to show typing indicator
-    const MESSAGE_FADE_DURATION = 275; // Fade in duration for messages
-    const BUTTON_STAGGER_DELAY = 15; // Delay between each button appearing
-    
-    // Toggle chat visibility - if opening the chat and it's empty, initialize it
-    function toggleChat() {
-        chatBotContainer.classList.toggle('minimized');     // Toggle minimized state
-        chatLaunchButton.classList.toggle('hidden');        // Toggle hidden state
-        if (!chatBotContainer.classList.contains('minimized') && chatMessages.children.length === 0) {
-            // Add a small delay before showing the greeting to feel more natural
-            setTimeout(() => {
-                handleUserInput('', 'greeting');
-            }, 300);
+document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
+    const elements = {
+        chatMessages: document.getElementById('chat-messages'),
+        chatContainer: document.getElementById('chat-container'),
+        launchButton: document.getElementById('chat-launch-button'),
+        minimizeButton: document.getElementById('chat-minimize-button'),
+        themeToggle: document.getElementById('theme-toggle'),
+        resizeHandle: null // Will be created dynamically
+    };
+
+    // Configuration
+    const CONFIG = {
+        typingDelay: 600,
+        inputFocusDelay: 100,
+        minWidth: 300,
+        minHeight: 350,
+        maxWidth: 600,
+        maxHeight: 800
+    };
+
+    // State
+    const state = {
+        currentInputContext: null,
+        isDarkMode: true,
+        sessionId: generateSessionId(),
+        isResizing: false,
+        resizeStartX: 0,
+        resizeStartY: 0,
+        resizeStartWidth: 0,
+        resizeStartHeight: 0
+    };
+
+    // Initialize
+    init();
+
+    /**
+     * Initialize event listeners and UI components
+     */
+    function init() {
+        createResizeHandle();
+        elements.themeToggle.addEventListener('click', toggleTheme);
+        elements.launchButton.addEventListener('click', toggleChat);
+        elements.minimizeButton.addEventListener('click', toggleChat);
+    }
+
+    /**
+     * Create and attach resize handle
+     */
+    function createResizeHandle() {
+        const handle = document.createElement('div');
+        handle.classList.add('resize-handle');
+        handle.id = 'resize-handle';
+        elements.chatContainer.appendChild(handle);
+        elements.resizeHandle = handle;
+
+        // Mouse events
+        handle.addEventListener('mousedown', startResize);
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
+
+        // Touch events for mobile
+        handle.addEventListener('touchstart', startResizeTouch, { passive: false });
+        document.addEventListener('touchmove', doResizeTouch, { passive: false });
+        document.addEventListener('touchend', stopResize);
+    }
+
+    /**
+     * Start resize operation (mouse)
+     */
+    function startResize(e) {
+        e.preventDefault();
+        state.isResizing = true;
+        state.resizeStartX = e.clientX;
+        state.resizeStartY = e.clientY;
+        state.resizeStartWidth = elements.chatContainer.offsetWidth;
+        state.resizeStartHeight = elements.chatContainer.offsetHeight;
+        elements.chatContainer.classList.add('resizing');
+    }
+
+    /**
+     * Start resize operation (touch)
+     */
+    function startResizeTouch(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        state.isResizing = true;
+        state.resizeStartX = touch.clientX;
+        state.resizeStartY = touch.clientY;
+        state.resizeStartWidth = elements.chatContainer.offsetWidth;
+        state.resizeStartHeight = elements.chatContainer.offsetHeight;
+        elements.chatContainer.classList.add('resizing');
+    }
+
+    /**
+     * Perform resize operation (mouse)
+     */
+    function doResize(e) {
+        if (!state.isResizing) return;
+        
+        // Calculate delta (inverted because we're resizing from top-left)
+        const deltaX = state.resizeStartX - e.clientX;
+        const deltaY = state.resizeStartY - e.clientY;
+        
+        applyResize(deltaX, deltaY);
+    }
+
+    /**
+     * Perform resize operation (touch)
+     */
+    function doResizeTouch(e) {
+        if (!state.isResizing) return;
+        e.preventDefault();
+        
+        const touch = e.touches[0];
+        const deltaX = state.resizeStartX - touch.clientX;
+        const deltaY = state.resizeStartY - touch.clientY;
+        
+        applyResize(deltaX, deltaY);
+    }
+
+    /**
+     * Apply resize dimensions
+     */
+    function applyResize(deltaX, deltaY) {
+        let newWidth = state.resizeStartWidth + deltaX;
+        let newHeight = state.resizeStartHeight + deltaY;
+        
+        // Constrain to min/max bounds
+        newWidth = Math.max(CONFIG.minWidth, Math.min(CONFIG.maxWidth, newWidth));
+        newHeight = Math.max(CONFIG.minHeight, Math.min(CONFIG.maxHeight, newHeight));
+        
+        elements.chatContainer.style.width = newWidth + 'px';
+        elements.chatContainer.style.height = newHeight + 'px';
+    }
+
+    /**
+     * Stop resize operation
+     */
+    function stopResize() {
+        if (state.isResizing) {
+            state.isResizing = false;
+            elements.chatContainer.classList.remove('resizing');
         }
     }
-    
-    // Open the chatbot - chatLaunchButton is not visible when chatbot is open
-    chatLaunchButton.addEventListener('click', toggleChat);
-    
-    // Minimize the chatbot - chatMinimizeButton is not visible when chatbot is closed
-    chatMinimizeButton.addEventListener('click', toggleChat);
-    
-    // Create and show typing indicator
+
+    /**
+     * Generate unique session ID
+     */
+    function generateSessionId() {
+        return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    /**
+     * Toggle between light and dark themes
+     */
+    function toggleTheme() {
+        state.isDarkMode = !state.isDarkMode;
+        const addClass = !state.isDarkMode;
+        
+        elements.chatContainer.classList.toggle('light-mode', addClass);
+        elements.launchButton.classList.toggle('light-mode', addClass);
+        elements.themeToggle.classList.toggle('light-mode', addClass);
+    }
+
+    /**
+     * Toggle chat visibility
+     */
+    function toggleChat() {
+        elements.chatContainer.classList.toggle('minimized');
+        elements.launchButton.classList.toggle('hidden');
+
+        // Initialize chat on first open
+        const isOpen = !elements.chatContainer.classList.contains('minimized');
+        const isEmpty = elements.chatMessages.children.length === 0;
+
+        if (isOpen && isEmpty) {
+            setTimeout(() => sendToServer('', 'greeting'), 200);
+        }
+    }
+
+    /**
+     * Add a message to the chat
+     */
+    function addMessage(text, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message', isUser ? 'user-message' : 'bot-message');
+        messageDiv.textContent = text;
+        elements.chatMessages.appendChild(messageDiv);
+        scrollToBottom();
+    }
+
+    /**
+     * Scroll chat to bottom
+     */
+    function scrollToBottom() {
+        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+    }
+
+    /**
+     * Show typing indicator
+     */
     function showTypingIndicator() {
         const typingDiv = document.createElement('div');
         typingDiv.classList.add('message', 'bot-message', 'typing-indicator');
@@ -43,286 +216,175 @@ document.addEventListener('DOMContentLoaded', function() {
                 <span></span>
             </div>
         `;
-        chatMessages.appendChild(typingDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-        
-        // Animate in the typing indicator
-        requestAnimationFrame(() => {
-            typingDiv.style.opacity = '1';
-            typingDiv.style.transform = 'translateY(0)';
-        });
-        
-        return typingDiv;
+        elements.chatMessages.appendChild(typingDiv);
+        scrollToBottom();
     }
-    
-    // Remove typing indicator
+
+    /**
+     * Remove typing indicator
+     */
     function removeTypingIndicator() {
-        const typingIndicator = document.getElementById('typing-indicator');
-        if (typingIndicator) {
-            typingIndicator.style.opacity = '0';
-            typingIndicator.style.transform = 'translateY(-10px)';
-            setTimeout(() => {
-                if (typingIndicator.parentNode) {
-                    typingIndicator.remove();
-                }
-            }, MESSAGE_FADE_DURATION);
-        }
+        const indicator = document.getElementById('typing-indicator');
+        if (indicator) indicator.remove();
     }
-    
-    // Present each new text message (from the user or the chatbot) to the user in the chatbox display
-    function addMessage(text, isUser = false, delay = 0) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const messageDiv = document.createElement('div');       // Create a message for display
-                messageDiv.classList.add('message');                    // Register the message for CSS support
-                if (isUser) {
-                    messageDiv.classList.add('user-message');           // Register as a user's message for CSS support
-                } else {
-                    messageDiv.classList.add('bot-message');            // Register as a chatbot message for CSS support
-                }
-                messageDiv.textContent = text;                          // Add the message text
-                
-                // Set initial state for animation (invisible and slightly offset)
-                messageDiv.style.opacity = '0';
-                messageDiv.style.transform = 'translateY(20px)';
-                messageDiv.style.transition = `all ${MESSAGE_FADE_DURATION}ms ease-out`;
-                
-                chatMessages.appendChild(messageDiv);                   // Append it to the chat messages
-                chatMessages.scrollTop = chatMessages.scrollHeight;     // Scroll to the bottom of the chat messages
-                
-                // Animate in the message
-                requestAnimationFrame(() => {
-                    messageDiv.style.opacity = '1';
-                    messageDiv.style.transform = 'translateY(0)';
-                });
-                
-                // Resolve after animation completes
-                setTimeout(resolve, MESSAGE_FADE_DURATION);
-            }, delay);
+
+    /**
+     * Add interactive buttons
+     */
+    function addButtons(buttons) {
+        if (!buttons?.length) return;
+
+        const container = document.createElement('div');
+        container.classList.add('buttons-container');
+        container.id = 'buttons-container';
+
+        buttons.forEach(button => {
+            const btn = document.createElement('button');
+            btn.classList.add('option-button');
+            btn.textContent = button.text;
+            btn.addEventListener('click', () => handleButtonClick(button));
+            container.appendChild(btn);
         });
+
+        elements.chatMessages.appendChild(container);
+        scrollToBottom();
     }
-    
-    // Present text input field to the user to enable order number input for checking order status
-    function addOrderInput(delay = 0) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const orderInputContainer = document.createElement('div');  // Create an order input container
-                orderInputContainer.classList.add('order-input-container'); // Register the container for CSS support
-                orderInputContainer.id = 'order-input-container';           // ID the container for easy lookup
-                
-                // Set initial state for animation
-                orderInputContainer.style.opacity = '0';
-                orderInputContainer.style.transform = 'translateY(20px)';
-                orderInputContainer.style.transition = `all ${MESSAGE_FADE_DURATION}ms ease-out`;
-                
-                const orderInput = document.createElement('input');         // Create a text input field to get the order number
-                orderInput.classList.add('order-input');                    // Register the input field for CSS support
-                orderInput.id = 'order-input';                              // ID the text input field for easy lookup
-                orderInput.placeholder = 'Enter your order number...';      // Display instructions to user
-                orderInput.type = 'number';                                 // Set input type to number (restricts submissions to numbers)
-                
-                const submitButton = document.createElement('button');      // Create a submit button for use with text input field
-                submitButton.classList.add('order-submit-button');          // Register the button for CSS support
-                submitButton.textContent = 'Status';                        // Label the button
-                submitButton.addEventListener('click', function() {         // Enable text input by clicking the submit button
-                    submitOrderNumber();                                          // submit if clicked
-                });                                                       
-                orderInput.addEventListener('keypress', function(event) {   // Enable text input by pressing the enter key
-                    if (event.key == 'Enter') {                                // If Enter key was pressed...
-                        submitOrderNumber();                                          // submit number
-                    }
-                });
-                
-                orderInputContainer.appendChild(orderInput);                // Append text input box to a container
-                orderInputContainer.appendChild(submitButton);              // Append the submit button to the same container
-                chatMessages.appendChild(orderInputContainer);              // Display the whole container in the chat stream
-                chatMessages.scrollTop = chatMessages.scrollHeight;         // Scroll to the bottom of the chat messages to make it show
-                
-                // Animate in the input container
-                requestAnimationFrame(() => {
-                    orderInputContainer.style.opacity = '1';
-                    orderInputContainer.style.transform = 'translateY(0)';
-                });
-                
-                // Focus the input after animation
-                setTimeout(() => {
-                    orderInput.focus();
-                    resolve();
-                }, MESSAGE_FADE_DURATION);
-            }, delay);
+
+    /**
+     * Handle button click
+     */
+    function handleButtonClick(button) {
+        addMessage(button.text, true);
+        sendToServer('', button.value);
+    }
+
+    /**
+     * Remove buttons container
+     */
+    function removeButtons() {
+        const container = document.getElementById('buttons-container');
+        if (container) container.remove();
+    }
+
+    /**
+     * Add text input field
+     */
+    function addTextInput(context, placeholder, buttonLabel) {
+        state.currentInputContext = context;
+
+        const container = document.createElement('div');
+        container.classList.add('text-input-container');
+        container.id = 'text-input-container';
+
+        const input = document.createElement('input');
+        input.classList.add('text-input');
+        input.id = 'text-input';
+        input.placeholder = placeholder;
+        input.type = context === 'order' ? 'number' : 'text';
+
+        const submitBtn = document.createElement('button');
+        submitBtn.classList.add('text-submit-button');
+        submitBtn.textContent = buttonLabel;
+        submitBtn.addEventListener('click', submitTextInput);
+
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitTextInput();
         });
+
+        container.appendChild(input);
+        container.appendChild(submitBtn);
+        elements.chatMessages.appendChild(container);
+        scrollToBottom();
+
+        setTimeout(() => input.focus(), CONFIG.inputFocusDelay);
     }
 
-    // Handle user submission of an order number via the text input field
-    function submitOrderNumber() {
-        const orderInput = document.getElementById('order-input');
-        const orderNumber = orderInput.value.trim();
-        if (orderNumber){
-            addMessage(`Order #${orderNumber}`, true); // Add the order number as a user message to the chat display
-            handleUserInput(orderNumber, 'order');     // submit msg to chatbot with order# $ 'TrackOrderIntent'
+    /**
+     * Submit text input
+     */
+    function submitTextInput() {
+        const input = document.getElementById('text-input');
+        const text = input.value.trim();
+
+        if (text) {
+            addMessage(text, true);
+            sendToServer(text, state.currentInputContext);
         }
     }
 
-    // Remove the order input text box from the chat stream
-    function removeTextInputBoxFromChat() {
-        const orderInputContainer = document.getElementById('order-input-container');
-        if (orderInputContainer) {                     // if present....
-            orderInputContainer.style.opacity = '0';
-            orderInputContainer.style.transform = 'translateY(-10px)';
-            setTimeout(() => {
-                if (orderInputContainer.parentNode) {
-                    orderInputContainer.remove();
-                }
-            }, MESSAGE_FADE_DURATION);
-        }
+    /**
+     * Remove text input container
+     */
+    function removeTextInput() {
+        const container = document.getElementById('text-input-container');
+        if (container) container.remove();
+        state.currentInputContext = null;
     }
 
-    // Remove the buttons from the chat stream
-    function removeButtonsFromChat() {
-        const buttonsContainer = document.getElementById('buttons-container');
-        if (buttonsContainer) {                 // If present...
-            buttonsContainer.style.opacity = '0';
-            buttonsContainer.style.transform = 'translateY(-10px)';
-            setTimeout(() => {
-                if (buttonsContainer.parentNode) {
-                    buttonsContainer.remove();
-                }
-            }, MESSAGE_FADE_DURATION);
-        }
-    }
+    /**
+     * Send request to server
+     */
+    async function sendToServer(text, intent) {
+        // Clear previous UI elements
+        removeButtons();
+        removeTextInput();
 
-    // Clear all Prior User input elements from the chat stream, leaving only the user and chatbot text messages
-    function clearPriorUIElements() {
-        removeButtonsFromChat();
-        removeTextInputBoxFromChat();
-    }
+        // Show typing indicator (except for greeting)
+        const showTyping = intent !== 'greeting';
+        if (showTyping) showTypingIndicator();
 
-    // Present the userIntent buttons that were provided in a chatbot response (menu-driven chat) to the user
-    function addButtons(buttons, initialDelay = 0) {
-        return new Promise((resolve) => {
-            if (!buttons || buttons.length === 0) {
-                resolve();
-                return;
-            }
-            
-            setTimeout(() => {
-                const buttonsContainer = document.createElement('div');     // Create a buttonsContainer
-                buttonsContainer.classList.add('buttons-container');        // Register the container to enable CSS support
-                buttonsContainer.id = 'buttons-container';                  // ID the container for easy lookup
-                
-                // Set initial container state
-                buttonsContainer.style.opacity = '0';
-                buttonsContainer.style.transform = 'translateY(20px)';
-                buttonsContainer.style.transition = `all ${MESSAGE_FADE_DURATION}ms ease-out`;
-                
-                let buttonCount = 0;
-                buttons.forEach((button, index) => {                                 // Create all buttons requested by the chatbot
-                    const buttonElement = document.createElement('button'); // Create a new button
-                    buttonElement.classList.add('option-button');           // Register each button to enable CSS support
-                    buttonElement.textContent = button.text;                // Label each button
-                    
-                    // Set initial button state for staggered animation
-                    buttonElement.style.opacity = '0';
-                    buttonElement.style.transform = 'scale(0.8) translateY(10px)';
-                    buttonElement.style.transition = `all ${MESSAGE_FADE_DURATION}ms ease-out`;
-                    
-                    buttonElement.addEventListener('click', () => {         // Add a click handler for each button
-                        // Add subtle click animation
-                        buttonElement.style.transform = 'scale(0.95)';
-                        setTimeout(() => {
-                            addMessage(button.text, true);                      // Start monitoring each button (by label)
-                            handleUserInput('', button.value);                  // msg to chatbot - if clicked, value = userIntent
-                        }, 100);
-                    });
-                    
-                    buttonsContainer.appendChild(buttonElement);            // Append each new button to the buttonsContainer
-                });
-                
-                chatMessages.appendChild(buttonsContainer);                 // Display the buttons as a chat message
-                chatMessages.scrollTop = chatMessages.scrollHeight;         // Scroll to the bottom of the chat messages
-                
-                // Animate in the container first
-                requestAnimationFrame(() => {
-                    buttonsContainer.style.opacity = '1';
-                    buttonsContainer.style.transform = 'translateY(0)';
-                });
-                
-                // Then animate in each button with staggered timing
-                const buttonElements = buttonsContainer.querySelectorAll('.option-button');
-                buttonElements.forEach((buttonElement, index) => {
-                    setTimeout(() => {
-                        buttonElement.style.opacity = '1';
-                        buttonElement.style.transform = 'scale(1) translateY(0)';
-                        buttonCount++;
-                        
-                        // Resolve when all buttons are animated in
-                        if (buttonCount === buttons.length) {
-                            setTimeout(resolve, MESSAGE_FADE_DURATION);
-                        }
-                    }, MESSAGE_FADE_DURATION + (index * BUTTON_STAGGER_DELAY));
-                });
-                
-            }, initialDelay);
-        });
-    }
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userTypedText: text,
+                    userIntent: intent,
+                    sessionId: state.sessionId
+                })
+            });
 
-    // Handle user input (button click) and the chatbot's response
-    function handleUserInput(text, buttonValue) {
-        const messageToChatbot = {              // Prep the user's message
-            userTypedText: text,
-            userIntent: buttonValue
-        };
-        
-        // Clear previous UI elements immediately
-        clearPriorUIElements();
-        
-        // Show typing indicator for bot responses (but not for the initial greeting)
-        let typingIndicator = null;
-        if (buttonValue !== 'greeting') {
-            typingIndicator = showTypingIndicator();
-        }
-        
-        fetch('/api/chat', {                    // Send the user's message to the chatbot & fetch its response
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(messageToChatbot)
-        })
-        .then(response => response.json())      // Then process the chatbot's response
-        .then(data => {
-            // Calculate delay based on whether we're showing typing indicator
-            const responseDelay = typingIndicator ? TYPING_DELAY : 0;
-            
+            const data = await response.json();
+            const delay = showTyping ? CONFIG.typingDelay : 0;
+
             setTimeout(() => {
-                // Remove typing indicator if it exists
-                if (typingIndicator) {
-                    removeTypingIndicator();
-                }
-                
-                // Add the bot message with a small delay after typing indicator removal
-                setTimeout(async () => {
-                    await addMessage(data.response, false);
-                    
-                    // Add input field if needed
-                    if (data.enableTextInput) {
-                        await addOrderInput(200);
-                    }
-                    
-                    // Add buttons with a slight delay
-                    await addButtons(data.buttons, 300);
-                    
-                }, typingIndicator ? MESSAGE_FADE_DURATION : 0);
-                
-            }, responseDelay);
-        })
-        .catch(error => {                       // Something didn't work right - investigate
-            console.error('Error:', error);
-            if (typingIndicator) {
                 removeTypingIndicator();
-            }
-            setTimeout(() => {
-                addMessage('Sorry, something went wrong. Please try again.', false);
-            }, typingIndicator ? MESSAGE_FADE_DURATION : 0);
-        });
+                addMessage(data.response, false);
+
+                // Add text input if enabled
+                if (data.enableTextInput) {
+                    const inputConfig = getInputConfig(intent);
+                    addTextInput(inputConfig.context, inputConfig.placeholder, inputConfig.label);
+                }
+
+                // Add buttons
+                addButtons(data.buttons);
+            }, delay);
+
+        } catch (error) {
+            console.error('Error:', error);
+            removeTypingIndicator();
+            addMessage('Sorry, something went wrong. Please try again.', false);
+        }
     }
 
+    /**
+     * Get input configuration based on intent
+     */
+    function getInputConfig(intent) {
+        const configs = {
+            order: {
+                context: 'order',
+                placeholder: 'Enter your order number...',
+                label: 'Status'
+            },
+            freetext: {
+                context: 'freetext',
+                placeholder: 'Type your question...',
+                label: 'Ask'
+            }
+        };
+
+        return configs[intent] || configs.freetext;
+    }
 });
